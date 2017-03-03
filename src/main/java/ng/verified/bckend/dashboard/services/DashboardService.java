@@ -3,16 +3,20 @@ package ng.verified.bckend.dashboard.services;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Response;
 
+import org.bson.Document;
 import org.jboss.logging.Logger;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import ng.verified.bckend.dashboard.tools.QueryManager;
@@ -20,6 +24,7 @@ import ng.verified.jpa.ClientUser;
 import ng.verified.jpa.WalletStatement;
 import ng.verified.jpa.enums.TransactionType;
 import ng.verified.mongotool.DocumentService;
+import ng.verified.mongotool.enums.documents.Transactions;
 
 @Path(value = "/api")
 public class DashboardService {
@@ -63,6 +68,59 @@ public class DashboardService {
 		jsonObject.addProperty("totalFailedCall", getClientTotalTransactionCountByStatus(clientUser, false));
 		
 		return Response.ok().entity(new Gson().toJson(jsonObject)).build();
+	}
+	
+	@GET
+	@Path(value = "/servreq/{txnstatus}")
+	public Response doServiceRequest(@HeaderParam(value = "Authorization") String bearer, 
+			@HeaderParam(value = "userid") String useridstring, @PathParam(value = "txnstatus") String status){
+		
+		ClientUser clientUser = null;
+
+		try {
+			long userid = Long.parseLong(useridstring);
+			clientUser = queryManager.getClientUserDataByUseridAndEagerProperties(userid, "client");
+		} catch (NumberFormatException e) {
+			// TODO Auto-generated catch block
+			log.error("", e);
+			return Response.serverError().entity(e.getClass()).build();
+		}
+		
+		JsonArray jsonArray = new JsonArray();
+		
+		JsonObject jsonObject = new JsonObject();
+		jsonObject.addProperty("Authorization", bearer);
+		
+		List<Document> documents = getTransactionLogsByClientUser(clientUser, status);
+		if (documents != null && !documents.isEmpty())
+			for (Document document : documents){
+				JsonObject jObject = new JsonObject();
+				jObject.addProperty("transactionId", document.getString(Transactions.reference_no.name()));
+				jObject.addProperty("amount", document.getDouble(Transactions.charge.name()));
+				jObject.addProperty("date", document.getDate(Transactions.txn_time.name()).toString());
+				
+				jsonArray.add(jObject);
+			}
+		
+		jsonObject.add("transactionLogs", jsonArray);
+		
+		return Response.ok().entity(new Gson().toJson(jsonObject)).build();
+	}
+
+	/**
+	 * Get list of Transaction documents by ClientUser user id and service status.
+	 * 
+	 * @param clientUser
+	 * @param status
+	 * @return list of documents
+	 */
+	private List<Document> getTransactionLogsByClientUser(ClientUser clientUser, String status) {
+		// TODO Auto-generated method stub
+		
+		if (status.equalsIgnoreCase("successful"))
+			return documentService.getTransactionByClientAndServiceStatus(clientUser.getUserid(), true);
+		else
+			return documentService.getTransactionByClientAndServiceStatus(clientUser.getUserid(), false);
 	}
 
 	/**
