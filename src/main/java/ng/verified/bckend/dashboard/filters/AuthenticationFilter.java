@@ -34,7 +34,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		String authHeaderVal = requestContext.getHeaderString("Authorization");
 		String claimsJws = null;
 
-		if(authHeaderVal.startsWith("Bearer")){
+		if(authHeaderVal != null && authHeaderVal.startsWith("Bearer")){
 			claimsJws = authHeaderVal.split(" ")[1];
 		}else{
 			log.info("returning 1");
