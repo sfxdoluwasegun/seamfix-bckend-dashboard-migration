@@ -34,11 +34,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		String authHeaderVal = requestContext.getHeaderString("Authorization");
 		String claimsJws = null;
 
-		if(authHeaderVal.startsWith("Bearer")){
+		if(authHeaderVal != null && authHeaderVal.startsWith("Bearer")){
 			claimsJws = authHeaderVal.split(" ")[1];
 		}else{
-			log.info("returning 1");
 			requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+			return;
 		}
 		
 		byte[] apiKeySecretBytes = DatatypeConverter.parseBase64Binary(Base64.getEncoder().encodeToString("secret".getBytes()));
@@ -47,8 +47,10 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 		try {
 			Claims claims = Jwts.parser().setSigningKey(signingKey).parseClaimsJws(claimsJws).getBody();
 			String userid = claims.getSubject();
-			if (userid == null || userid.isEmpty() || !StringUtils.isNumeric(userid))
+			if (userid == null || userid.isEmpty() || !StringUtils.isNumeric(userid)){
 				requestContext.abortWith(Response.status(Response.Status.UNAUTHORIZED).build());
+				return;
+			}
 			
 			requestContext.getHeaders().add("userid", userid);
 		} catch (ExpiredJwtException | UnsupportedJwtException | MalformedJwtException | SignatureException
