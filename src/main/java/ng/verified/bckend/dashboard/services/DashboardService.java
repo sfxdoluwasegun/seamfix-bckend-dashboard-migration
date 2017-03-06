@@ -154,16 +154,19 @@ public class DashboardService {
 	 * @param clientUser
 	 * @return daily average computed from the division of total costs by number of days between first and last invocation
 	 */
-	private BigDecimal calculateClientAverageDailyRequest(ClientUser clientUser) {
+	private long calculateClientAverageDailyRequest(ClientUser clientUser) {
 		// TODO Auto-generated method stub
 		
-		BigDecimal cost = queryManager.calculateTotalClientTransactionCost(clientUser);
+		Long count = queryManager.computeTotalClientTransactionCount(clientUser);
+		if (count.compareTo(0L) == 0)
+			return 0L;
+		
 		Timestamp begin = queryManager.getFirstWalletStatementTimestampByClientUserAndTransactiontype(clientUser, TransactionType.DEBIT);
 		Timestamp end = queryManager.getLastWalletStatementTimestampByClientUserAndTransactiontype(clientUser, TransactionType.DEBIT);
 		
 		long days = ChronoUnit.DAYS.between(begin.toLocalDateTime(), end.toLocalDateTime());
 		
-		return cost.divide(BigDecimal.valueOf(days));
+		return  count / days ;
 	}
 
 }
