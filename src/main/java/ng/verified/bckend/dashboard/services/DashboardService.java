@@ -10,6 +10,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.bson.Document;
@@ -46,6 +48,7 @@ public class DashboardService {
 
 	@GET
 	@Path(value = "/servreq")
+	@Produces(MediaType.APPLICATION_JSON)
 	public Response doServiceRequest(@HeaderParam(value = "Authorization") String bearer, 
 			@HeaderParam(value = "userid") String useridstring){
 
@@ -61,17 +64,17 @@ public class DashboardService {
 		}
 		
 		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty("Authorization", bearer);
 		jsonObject.addProperty("averageDailyRequest", calculateClientAverageDailyRequest(clientUser));
 		jsonObject.addProperty("totalTransactionCost", calculateClientTotalTransactionCost(clientUser));
 		jsonObject.addProperty("totalSuccessfulCall", getClientTotalTransactionCountByStatus(clientUser, true));
 		jsonObject.addProperty("totalFailedCall", getClientTotalTransactionCountByStatus(clientUser, false));
 		
-		return Response.ok().entity(new Gson().toJson(jsonObject)).build();
+		return Response.ok().header("Authorization", bearer).entity(new Gson().toJson(jsonObject)).build();
 	}
 	
 	@GET
 	@Path(value = "/servreq/{txnstatus}")
+	@Produces(MediaType.APPLICATION_JSON)
 	public Response doServiceRequest(@HeaderParam(value = "Authorization") String bearer, 
 			@HeaderParam(value = "userid") String useridstring, @PathParam(value = "txnstatus") String status){
 		
@@ -145,7 +148,10 @@ public class DashboardService {
 	private BigDecimal calculateClientTotalTransactionCost(ClientUser clientUser) {
 		// TODO Auto-generated method stub
 		
-		return queryManager.calculateTotalClientTransactionCost(clientUser);
+		BigDecimal totalCost = queryManager.calculateTotalClientTransactionCost(clientUser);
+		if (totalCost == null) totalCost = BigDecimal.ZERO;
+		
+		return totalCost;
 	}
 
 	/**
