@@ -167,6 +167,7 @@ public class DashboardService {
 				jObject.addProperty("key", clientKey.getKey());
 				jObject.addProperty("charge", queryManager.getClientChargeForAPIRequest(clientUser.getUserid(), clientKey.getKey()));
 				jObject.addProperty("lastInvocation", clientKey.getLastInvocation().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+				jObject.addProperty("live", clientKey.isLive());
 				
 				jsonArray.add(jObject);
 			}
