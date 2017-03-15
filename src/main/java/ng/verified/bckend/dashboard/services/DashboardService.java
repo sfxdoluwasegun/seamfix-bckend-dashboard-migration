@@ -2,7 +2,6 @@ package ng.verified.bckend.dashboard.services;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -12,7 +11,6 @@ import javax.ws.rs.HeaderParam;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -24,7 +22,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import ng.verified.bckend.dashboard.tools.QueryManager;
-import ng.verified.jpa.ClientKeys;
 import ng.verified.jpa.ClientUser;
 import ng.verified.jpa.WalletStatement;
 import ng.verified.jpa.enums.TransactionType;
@@ -109,71 +106,6 @@ public class DashboardService {
 			}
 
 		jsonObject.add("transactionLogs", jsonArray);
-
-		return Response.ok().entity(new Gson().toJson(jsonObject)).build();
-	}
-
-	@GET
-	@Path(value = "/servreq/bucket")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response doServiceRequest(@HeaderParam(value = "Authorization") String bearer, 
-			@HeaderParam(value = "userid") String useridstring, @QueryParam(value = "index") String startPostion, 
-			@QueryParam(value = "max") String maxResults, @QueryParam(value = "sort") String sort, @QueryParam(value = "sortdirection") String direction){
-
-		ClientUser clientUser = null;
-
-		try {
-			long userid = Long.parseLong(useridstring);
-			clientUser = queryManager.getClientUserDataByUseridAndEagerProperties(userid, "client");
-		} catch (NumberFormatException e) {
-			// TODO Auto-generated catch block
-			log.error("", e);
-			return Response.serverError().entity(e.getClass()).build();
-		}
-		
-		if (startPostion == null || startPostion.isEmpty()){
-			startPostion = "0";
-			maxResults = "10";
-		}
-		
-		int index = 0;
-		int max = 10;
-		
-		JsonObject jsonObject = new JsonObject();
-		
-		if (sort != null && !sort.isEmpty() && !direction.equalsIgnoreCase("ASC") && !direction.equalsIgnoreCase("DESC")){
-			jsonObject.addProperty("message", "Invalid sort direction values found in request query parameter");
-			return Response.serverError().entity(new Gson().toJson(jsonObject)).build();
-		}
-		
-		try {
-			index = Integer.parseInt(startPostion);
-			max = Integer.parseInt(maxResults);
-		} catch (NumberFormatException e) {
-			// TODO Auto-generated catch block
-			log.error("", e);
-			jsonObject.addProperty("message", "Invalid pagination values found in request query parameter");
-			return Response.serverError().entity(new Gson().toJson(jsonObject)).build();
-		}
-		
-		JsonArray jsonArray = new JsonArray();
-
-		List<ClientKeys> clientKeys = queryManager.getPaginatedClientKeysByClient(clientUser.getClient(), index, max, sort, direction);
-		if (clientKeys != null){
-			jsonObject.addProperty("message", clientKeys.size() + " API information found for client");
-			for (ClientKeys clientKey : clientKeys){
-				JsonObject jObject = new JsonObject();
-				jObject.addProperty("api", clientKey.getWrapper().getName());
-				jObject.addProperty("key", clientKey.getKey());
-				jObject.addProperty("charge", queryManager.getClientChargeForAPIRequest(clientUser.getUserid(), clientKey.getKey()));
-				jObject.addProperty("lastInvocation", clientKey.getLastInvocation().toLocalDateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-				jObject.addProperty("live", clientKey.isLive());
-				
-				jsonArray.add(jObject);
-			}
-			jsonObject.add("bucket", jsonArray);
-		}else
-			jsonObject.addProperty("message", "No API information found for client");
 
 		return Response.ok().entity(new Gson().toJson(jsonObject)).build();
 	}
