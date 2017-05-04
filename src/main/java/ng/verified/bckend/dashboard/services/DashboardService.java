@@ -72,7 +72,7 @@ public class DashboardService {
 		jsonObject.addProperty("totalSuccessfulCall", getClientTotalTransactionCountByStatus(clientUser, true));
 		jsonObject.addProperty("totalFailedCall", getClientTotalTransactionCountByStatus(clientUser, false));
 
-		return Response.ok().header("Authorization", bearer).entity(new Gson().toJson(jsonObject)).build();
+		return Response.ok().entity(new Gson().toJson(jsonObject)).build();
 	}
 
 	@GET
